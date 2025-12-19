@@ -107,6 +107,30 @@
       "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
     },
     {
+      "name": "OpenRouter",
+      "provider": "openrouter",
+      "api_key": "your-openrouter-api-key-here",
+      "model": "openai/gpt-4-turbo-preview",
+      "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 90,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately.",
+      "referer": "https://github.com",
+      "title": "Resumeme Script",
+      "headers": {}
+    },
+    {
+      "name": "Ollama Local",
+      "provider": "ollama",
+      "endpoint": "http://localhost:11434/api/chat",
+      "model": "llama2",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 120,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
       "name": "Claude 3 Sonnet",
       "provider": "anthropic",
       "api_key": "your-anthropic-api-key-here",
@@ -115,6 +139,25 @@
       "max_tokens": 4000,
       "timeout": 90,
       "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
+      "name": "Generic API",
+      "provider": "generic",
+      "endpoint": "https://api.example.com/v1/chat/completions",
+      "api_key": "your-api-key-here",
+      "model": "gpt-3.5-turbo",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 60,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately.",
+      "headers": {
+        "X-Custom-Header": "value"
+      },
+      "extra_params": {
+        "top_p": 0.9,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0
+      }
     }
   ],
 
@@ -123,7 +166,8 @@
     "detailed": "Analyze this content and provide:\n1. Main topic\n2. Key points (3-5)\n3. Important details\n4. Overall conclusion\n\nContent:\n$content\n\nAnalysis:",
     "concise": "Provide a very concise summary (2-3 sentences):\n\n$content\n\nConcise Summary:",
     "keywords": "Extract the 10 most important keywords:\n\n$content\n\nKeywords:",
-    "technical": "Technical summary:\n\n$content\n\nTechnical Summary:"
+    "technical": "Technical summary:\n\n$content\n\nTechnical Summary:",
+    "qa": "Generate 5 questions and answers based on this content:\n\n$content\n\nQuestions and Answers:"
   },
 
   "selected_prompt": "default",
