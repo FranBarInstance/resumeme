@@ -1,184 +1,313 @@
 {
-  // ============================================
-  // REQUIRED: List of URLs to process
-  // ============================================
+  // =======================================================================
+  // REQUIRED SECTIONS - These sections are mandatory for the script to work
+  // =======================================================================
+
+  // Array of URLs to scrape and process. At least one URL is required.
+  // Example: ["https://example.com/page1", "https://example.com/page2"]
   "urls": [
     "https://example.com/page1",
     "https://example.com/page2"
   ],
 
-  // ============================================
-  // REQUIRED: Output configuration
-  // ============================================
+  // =======================================================================
+  // OUTPUT CONFIGURATION - Controls where and how results are saved
+  // =======================================================================
   "output": {
-    // Output file path (empty for console output)
+    // File path for output. Leave empty or omit to print to console only.
     "file": "results/output.json",
 
-    // Output type: "json" or "text"/"txt"
+    // Output format: "json" or "text" (for plain text output)
     "type": "json",
 
-    // Output fields configuration
-    // Use literal strings or variables starting with $
+    // Field mapping for output. Customize which data appears in output.
+    // Available variables (prefixed with $):
+    //   $IAresult - Full AI-generated result
+    //   $source_url - Source URL(s)
+    //   $timestamp - Processing date/time
+    //   $word_count - Word count of cleaned content
+    //   $summary - First 500 chars of AI result
+    //   $title - Extracted page title
+    //   $raw_content - Original scraped content (before cleaning)
+    //   $clean_content - Cleaned content (after HTML cleaning)
+    //   $used_provider - AI provider used (e.g., "openai", "ollama")
+    //   $model - Specific AI model used
+    //   $total_raw_chars - Total characters in raw content
+    //   $total_clean_chars - Total characters in cleaned content
+    //   $compression_ratio - Raw/Clean ratio
+    //   $prompt_tokens - Tokens used in prompt
+    //   $completion_tokens - Tokens used in completion
+    //   $total_tokens - Total tokens used
     "fields": {
       "title": "Web Content Summary",
       "content": "$IAresult",
       "sources": "$source_url",
-      "processing_date": "$timestamp"
+      "processing_date": "$timestamp",
+      "word_count": "$word_count",
+      "preview": "$summary",
+      "extracted_title": "$title",
+      "raw_content_preview": "$raw_content",
+      "clean_content_preview": "$clean_content",
+      "ai_provider": "$used_provider",
+      "ai_model": "$model",
+      "raw_characters": "$total_raw_chars",
+      "clean_characters": "$total_clean_chars",
+      "compression_ratio": "$compression_ratio",
+      "prompt_tokens": "$prompt_tokens",
+      "completion_tokens": "$completion_tokens",
+      "total_tokens": "$total_tokens"
     },
 
-    // JSON indentation (0-4, 0 for minified)
+    // JSON indentation (0 for compact JSON, 2 or 4 for readable)
     "json_indent": 2,
 
-    // File encoding
+    // File encoding for output
     "encoding": "utf-8"
   },
 
-  // ============================================
-  // OPTIONAL: Web scraping configuration
-  // ============================================
+  // =======================================================================
+  // WEB SCRAPING CONFIGURATION - Controls how web pages are fetched
+  // =======================================================================
   "scraping": {
-    // User agent string
+    // User-Agent header for HTTP requests
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 
     // Request timeout in seconds
     "timeout": 60,
 
-    // Delay between requests in seconds (anti-blocking)
+    // Delay between requests in seconds (prevents rate limiting)
     "delay_between_requests": 2,
 
-    // Maximum retry attempts for failed requests
+    // Maximum number of retries for failed requests
     "max_retries": 3,
 
     // Maximum content size in bytes (10MB default)
     "max_content_size": 10485760,
 
-    // Verify SSL certificates
+    // Verify SSL certificates (set to false for self-signed certs)
     "verify_ssl": true,
 
     // Proxy configuration (optional)
+    // Example: {"http": "http://proxy:port", "https": "https://proxy:port"}
     "proxies": {},
 
-    // Custom HTTP headers (optional)
-    "headers": {}
+    // Additional HTTP headers (optional)
+    "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate"
+    }
   },
 
-  // ============================================
-  // OPTIONAL: HTML cleaning configuration
-  // ============================================
+  // =======================================================================
+  // HTML CLEANING CONFIGURATION - Controls how HTML is cleaned and extracted
+  // =======================================================================
   "html_cleaning": {
     // Enable/disable HTML cleaning
     "enabled": true,
 
-    // Extract only text (no HTML tags)
+    // Extract text only (true) or keep some HTML structure (false)
     "extract_text_only": true,
 
-    // HTML tags to remove completely
-    "remove_tags": ["script", "style", "meta", "nav", "footer", "header"],
+    // HTML tags to remove completely from the content
+    "remove_tags": [
+      "script", "style", "meta", "nav", "footer", "header",
+      "iframe", "form", "button", "input", "select", "textarea",
+      "aside", "svg", "canvas", "noscript"
+    ],
 
-    // HTML tags to keep (if empty, all tags are kept)
-    "keep_tags": ["p", "h1", "h2", "h3", "article", "section"],
+    // HTML tags to keep (only relevant when extract_text_only is false)
+    "keep_tags": [
+      "p", "h1", "h2", "h3", "h4", "h5", "h6",
+      "article", "section", "main", "div.content",
+      "div.article", "div.post", "div.main-content",
+      "li", "ul", "ol", "blockquote", "code", "pre"
+    ],
 
-    // Remove all HTML attributes
+    // Remove all HTML attributes (keeps only tag content)
     "remove_attributes": true,
 
     // Remove HTML comments
     "remove_comments": true,
 
-    // Clean excessive whitespace
+    // Clean excessive whitespace (multiple spaces, empty lines)
     "clean_whitespace": true,
 
-    // Minimum text length to keep (in characters)
+    // Minimum text length for a line to be kept (shorter lines are removed)
     "min_text_length": 20
   },
 
-  // ============================================
-  // REQUIRED for AI processing: AI API configuration
-  // Multiple APIs can be specified for fallback
-  // ============================================
+  // =======================================================================
+  // AI API CONFIGURATION - Configures AI providers with fallback system
+  // =======================================================================
+  // The script will try APIs in order until one succeeds
   "ai_api": [
     {
-      // Display name for this API configuration
-      "name": "OpenAI GPT-4",
+      // Display name for this API (for logging)
+      "name": "OpenAI GPT-4 Turbo",
 
-      // Provider: "openai", "anthropic", "openrouter", "ollama"
+      // Provider type: "openai", "anthropic", "ollama", "openrouter", "generic"
       "provider": "openai",
 
-      // API key (not required for ollama)
-      "api_key": "your-api-key-here",
+      // API key for the service (not required for Ollama)
+      "api_key": "your-openai-api-key-here",
 
-      // Model name
+      // Model to use (provider-specific)
       "model": "gpt-4-turbo-preview",
 
-      // Custom endpoint URL (optional)
+      // API endpoint URL (optional for some providers)
       "endpoint": "https://api.openai.com/v1/chat/completions",
 
-      // Temperature (0.0 to 2.0)
+      // Temperature for AI response (0.0 to 1.0)
       "temperature": 0.7,
 
-      // Maximum tokens in response
+      // Maximum tokens in AI response
       "max_tokens": 4000,
 
-      // Request timeout in seconds
+      // API request timeout in seconds
       "timeout": 90,
 
-      // System prompt for the AI
-      "system_prompt": "You are a helpful assistant that summarizes web content."
+      // System prompt sent to the AI
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
+      "name": "OpenRouter",
+      "provider": "openrouter",
+      "api_key": "your-openrouter-api-key-here",
+      "model": "openai/gpt-4-turbo-preview",
+      "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 90,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately.",
+
+      // OpenRouter specific: Referer header (required)
+      "referer": "https://github.com",
+
+      // OpenRouter specific: Application title
+      "title": "Resumeme Script",
+
+      // Additional headers (optional)
+      "headers": {}
+    },
+    {
+      "name": "Ollama Local",
+      "provider": "ollama",
+
+      // Ollama API endpoint (default is localhost)
+      "endpoint": "http://localhost:11434/api/chat",
+
+      // Local model name (must be pulled via `ollama pull <model>`)
+      "model": "llama2",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+
+      // Ollama can be slower, so longer timeout
+      "timeout": 120,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
+      "name": "Claude 3 Sonnet",
+      "provider": "anthropic",
+      "api_key": "your-anthropic-api-key-here",
+      "model": "claude-3-sonnet-20240229",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 90,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
+      "name": "Generic API",
+      "provider": "generic",
+
+      // Endpoint for any OpenAI-compatible API
+      "endpoint": "https://api.example.com/v1/chat/completions",
+      "api_key": "your-api-key-here",
+      "model": "gpt-3.5-turbo",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 60,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately.",
+
+      // Additional HTTP headers for the API
+      "headers": {
+        "X-Custom-Header": "value"
+      },
+
+      // Extra parameters for the API call
+      "extra_params": {
+        "top_p": 0.9,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0
+      }
     }
-    // Add more API configurations here for fallback
   ],
 
-  // ============================================
-  // OPTIONAL: Prompt templates
-  // ============================================
+  // =======================================================================
+  // PROMPT TEMPLATES - Different prompt styles for different use cases
+  // =======================================================================
   "prompt_templates": {
-    // Default prompt template
-    "default": "Summarize the following content:\n\n$content\n\nSummary:",
+    // Default prompt for general summarization
+    "default": "Please summarize the following web content concisely:\n\n$content\n\nSummary:",
 
-    // Custom prompt templates
-    "detailed": "Analyze this content in detail...",
-    "concise": "Provide a concise summary..."
+    // Detailed analysis prompt
+    "detailed": "Analyze this content and provide:\n1. Main topic\n2. Key points (3-5)\n3. Important details\n4. Overall conclusion\n\nContent:\n$content\n\nAnalysis:",
+
+    // Very concise summary
+    "concise": "Provide a very concise summary (2-3 sentences):\n\n$content\n\nConcise Summary:",
+
+    // Keyword extraction
+    "keywords": "Extract the 10 most important keywords:\n\n$content\n\nKeywords:",
+
+    // Technical summary for technical content
+    "technical": "Technical summary:\n\n$content\n\nTechnical Summary:",
+
+    // Question and answer generation
+    "qa": "Generate 5 questions and answers based on this content:\n\n$content\n\nQuestions and Answers:"
   },
 
-  // ============================================
-  // OPTIONAL: Selected prompt template
-  // Can be overridden via command line
-  // ============================================
+  // =======================================================================
+  // SELECTED PROMPT - Which prompt template to use from above
+  // =======================================================================
+  // Must match one of the keys in "prompt_templates"
   "selected_prompt": "default",
 
-  // ============================================
-  // OPTIONAL: Content processing configuration
-  // ============================================
+  // =======================================================================
+  // PROCESSING CONFIGURATION - Controls content processing pipeline
+  // =======================================================================
   "processing": {
-    // Content concatenation strategy: "sequential" or "chunked"
+    // How to concatenate content from multiple URLs:
+    //   "sequential" - Join all content in order
+    //   "chunked" - Split into chunks of chunk_size
     "concat_strategy": "sequential",
 
-    // Maximum total characters of cleaned content
+    // Maximum total characters before truncation
     "max_total_length": 150000,
 
-    // Chunk size for chunked strategy (in characters)
+    // Chunk size in characters (only for "chunked" strategy)
     "chunk_size": 30000,
 
-    // Maximum characters for AI prompt (truncates if longer)
+    // Maximum characters in the prompt sent to AI
     "max_prompt_chars": 120000,
 
-    // Maximum tokens for AI response
+    // Maximum tokens in AI response
     "max_response_tokens": 4000,
 
-    // Delay between API retries in seconds
+    // Delay in seconds between API retries
     "retry_delay": 3,
 
-    // Language for processing: "auto", "en", "es", etc.
+    // Content language (auto-detected if "auto")
     "language": "auto"
   },
 
-  // ============================================
-  // OPTIONAL: Logging configuration
-  // ============================================
+  // =======================================================================
+  // LOGGING CONFIGURATION - Controls logging behavior
+  // =======================================================================
   "logging": {
     // Enable/disable logging
     "enabled": true,
 
-    // Log level: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+    // Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
     "level": "INFO",
 
     // Log file path
