@@ -1,0 +1,193 @@
+{
+  // ============================================
+  // REQUIRED: List of URLs to process
+  // ============================================
+  "urls": [
+    "https://example.com/page1",
+    "https://example.com/page2"
+  ],
+
+  // ============================================
+  // REQUIRED: Output configuration
+  // ============================================
+  "output": {
+    // Output file path (empty for console output)
+    "file": "results/output.json",
+
+    // Output type: "json" or "text"/"txt"
+    "type": "json",
+
+    // Output fields configuration
+    // Use literal strings or variables starting with $
+    "fields": {
+      "title": "Web Content Summary",
+      "content": "$IAresult",
+      "sources": "$source_url",
+      "processing_date": "$timestamp"
+    },
+
+    // JSON indentation (0-4, 0 for minified)
+    "json_indent": 2,
+
+    // File encoding
+    "encoding": "utf-8"
+  },
+
+  // ============================================
+  // OPTIONAL: Web scraping configuration
+  // ============================================
+  "scraping": {
+    // User agent string
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+
+    // Request timeout in seconds
+    "timeout": 60,
+
+    // Delay between requests in seconds (anti-blocking)
+    "delay_between_requests": 2,
+
+    // Maximum retry attempts for failed requests
+    "max_retries": 3,
+
+    // Maximum content size in bytes (10MB default)
+    "max_content_size": 10485760,
+
+    // Verify SSL certificates
+    "verify_ssl": true,
+
+    // Proxy configuration (optional)
+    "proxies": {},
+
+    // Custom HTTP headers (optional)
+    "headers": {}
+  },
+
+  // ============================================
+  // OPTIONAL: HTML cleaning configuration
+  // ============================================
+  "html_cleaning": {
+    // Enable/disable HTML cleaning
+    "enabled": true,
+
+    // Extract only text (no HTML tags)
+    "extract_text_only": true,
+
+    // HTML tags to remove completely
+    "remove_tags": ["script", "style", "meta", "nav", "footer", "header"],
+
+    // HTML tags to keep (if empty, all tags are kept)
+    "keep_tags": ["p", "h1", "h2", "h3", "article", "section"],
+
+    // Remove all HTML attributes
+    "remove_attributes": true,
+
+    // Remove HTML comments
+    "remove_comments": true,
+
+    // Clean excessive whitespace
+    "clean_whitespace": true,
+
+    // Minimum text length to keep (in characters)
+    "min_text_length": 20
+  },
+
+  // ============================================
+  // REQUIRED for AI processing: AI API configuration
+  // Multiple APIs can be specified for fallback
+  // ============================================
+  "ai_api": [
+    {
+      // Display name for this API configuration
+      "name": "OpenAI GPT-4",
+
+      // Provider: "openai", "anthropic", "openrouter", "ollama"
+      "provider": "openai",
+
+      // API key (not required for ollama)
+      "api_key": "your-api-key-here",
+
+      // Model name
+      "model": "gpt-4-turbo-preview",
+
+      // Custom endpoint URL (optional)
+      "endpoint": "https://api.openai.com/v1/chat/completions",
+
+      // Temperature (0.0 to 2.0)
+      "temperature": 0.7,
+
+      // Maximum tokens in response
+      "max_tokens": 4000,
+
+      // Request timeout in seconds
+      "timeout": 90,
+
+      // System prompt for the AI
+      "system_prompt": "You are a helpful assistant that summarizes web content."
+    }
+    // Add more API configurations here for fallback
+  ],
+
+  // ============================================
+  // OPTIONAL: Prompt templates
+  // ============================================
+  "prompt_templates": {
+    // Default prompt template
+    "default": "Summarize the following content:\n\n$content\n\nSummary:",
+
+    // Custom prompt templates
+    "detailed": "Analyze this content in detail...",
+    "concise": "Provide a concise summary..."
+  },
+
+  // ============================================
+  // OPTIONAL: Selected prompt template
+  // Can be overridden via command line
+  // ============================================
+  "selected_prompt": "default",
+
+  // ============================================
+  // OPTIONAL: Content processing configuration
+  // ============================================
+  "processing": {
+    // Content concatenation strategy: "sequential" or "chunked"
+    "concat_strategy": "sequential",
+
+    // Maximum total characters of cleaned content
+    "max_total_length": 150000,
+
+    // Chunk size for chunked strategy (in characters)
+    "chunk_size": 30000,
+
+    // Maximum characters for AI prompt (truncates if longer)
+    "max_prompt_chars": 120000,
+
+    // Maximum tokens for AI response
+    "max_response_tokens": 4000,
+
+    // Delay between API retries in seconds
+    "retry_delay": 3,
+
+    // Language for processing: "auto", "en", "es", etc.
+    "language": "auto"
+  },
+
+  // ============================================
+  // OPTIONAL: Logging configuration
+  // ============================================
+  "logging": {
+    // Enable/disable logging
+    "enabled": true,
+
+    // Log level: "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"
+    "level": "INFO",
+
+    // Log file path
+    "file": "resumeme.log",
+
+    // Maximum log file size in MB before rotation
+    "max_size_mb": 10,
+
+    // Number of backup log files to keep
+    "backup_count": 3
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "urls": [
+    "https://example.com/page1",
+    "https://example.com/page2"
+  ],
+
+  "output": {
+    "file": "results/output.json",
+    "type": "json",
+    "fields": {
+      "title": "Web Content Summary",
+      "content": "$IAresult",
+      "sources": "$source_url",
+      "processing_date": "$timestamp",
+      "word_count": "$word_count",
+      "preview": "$summary",
+      "extracted_title": "$title",
+      "raw_content_preview": "$raw_content",
+      "clean_content_preview": "$clean_content",
+      "ai_provider": "$used_provider",
+      "ai_model": "$model",
+      "raw_characters": "$total_raw_chars",
+      "clean_characters": "$total_clean_chars",
+      "compression_ratio": "$compression_ratio",
+      "prompt_tokens": "$prompt_tokens",
+      "completion_tokens": "$completion_tokens",
+      "total_tokens": "$total_tokens"
+    },
+    "json_indent": 2,
+    "encoding": "utf-8"
+  },
+
+  "scraping": {
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "timeout": 60,
+    "delay_between_requests": 2,
+    "max_retries": 3,
+    "max_content_size": 10485760,
+    "verify_ssl": true,
+    "proxies": {},
+    "headers": {
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+      "Accept-Encoding": "gzip, deflate"
+    }
+  },
+
+  "html_cleaning": {
+    "enabled": true,
+    "extract_text_only": true,
+    "remove_tags": [
+      "script",
+      "style",
+      "meta",
+      "nav",
+      "footer",
+      "header",
+      "iframe",
+      "form",
+      "button",
+      "input",
+      "select",
+      "textarea",
+      "aside",
+      "svg",
+      "canvas",
+      "noscript"
+    ],
+    "keep_tags": [
+      "p",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "article",
+      "section",
+      "main",
+      "div.content",
+      "div.article",
+      "div.post",
+      "div.main-content",
+      "li",
+      "ul",
+      "ol",
+      "blockquote",
+      "code",
+      "pre"
+    ],
+    "remove_attributes": true,
+    "remove_comments": true,
+    "clean_whitespace": true,
+    "min_text_length": 20
+  },
+
+  "ai_api": [
+    {
+      "name": "OpenAI GPT-4 Turbo",
+      "provider": "openai",
+      "api_key": "your-openai-api-key-here",
+      "model": "gpt-4-turbo-preview",
+      "endpoint": "https://api.openai.com/v1/chat/completions",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 90,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    },
+    {
+      "name": "Claude 3 Sonnet",
+      "provider": "anthropic",
+      "api_key": "your-anthropic-api-key-here",
+      "model": "claude-3-sonnet-20240229",
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "timeout": 90,
+      "system_prompt": "You are a helpful assistant that summarizes web content concisely and accurately."
+    }
+  ],
+
+  "prompt_templates": {
+    "default": "Please summarize the following web content concisely:\n\n$content\n\nSummary:",
+    "detailed": "Analyze this content and provide:\n1. Main topic\n2. Key points (3-5)\n3. Important details\n4. Overall conclusion\n\nContent:\n$content\n\nAnalysis:",
+    "concise": "Provide a very concise summary (2-3 sentences):\n\n$content\n\nConcise Summary:",
+    "keywords": "Extract the 10 most important keywords:\n\n$content\n\nKeywords:",
+    "technical": "Technical summary:\n\n$content\n\nTechnical Summary:"
+  },
+
+  "selected_prompt": "default",
+
+  "processing": {
+    "concat_strategy": "sequential",
+    "max_total_length": 150000,
+    "chunk_size": 30000,
+    "max_prompt_chars": 120000,
+    "max_response_tokens": 4000,
+    "retry_delay": 3,
+    "language": "auto"
+  },
+
+  "logging": {
+    "enabled": true,
+    "level": "INFO",
+    "file": "resumeme.log",
+    "max_size_mb": 10,
+    "backup_count": 3
+  }
+}
