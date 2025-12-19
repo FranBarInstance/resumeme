@@ -425,20 +425,6 @@ pip install -r requirements.txt
 - Use smaller `chunk_size`
 - Consider processing fewer URLs
 
-## Contributing
-
-Contributions are welcome. Please:
-
-1. Fork the project
-2. Create a branch for your feature
-3. Commit your changes
-4. Push to the branch
-5. Open a Pull Request
-
-## License
-
-This project is under the MIT License. See the LICENSE file for more details.
-
 ## Support
 
 To report bugs or request features, please open an issue in the repository.
