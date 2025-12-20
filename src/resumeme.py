@@ -10,22 +10,23 @@ This script:
 5. Outputs results in JSON or text format based on configuration
 """
 
-import json
-import sys
-import re
-import time
-import logging
 import argparse
-from typing import Dict, List, Any, Optional, Tuple
+import json
+import logging
+import re
+import sys
+import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
+import anthropic
 import requests
 from bs4 import BeautifulSoup, Comment
+from openai import OpenAI
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from openai import OpenAI
-import anthropic
+
 
 class ConfigLoader:
     """Handles loading and validation of configuration file"""
