@@ -20,7 +20,6 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
 
-# Third-party imports
 import requests
 from bs4 import BeautifulSoup, Comment
 from requests.adapters import HTTPAdapter
@@ -74,7 +73,6 @@ class WebScraper:
         """Create a requests session with retry logic"""
         session = requests.Session()
 
-        # Configure retry strategy
         retry_strategy = Retry(
             total=self.config.get('scraping', {}).get('max_retries', 3),
             backoff_factor=1,
@@ -86,7 +84,6 @@ class WebScraper:
         session.mount("http://", adapter)
         session.mount("https://", adapter)
 
-        # Set default headers
         session.headers.update({
             'User-Agent': self.config.get('scraping', {}).get('user_agent',
                 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'),
@@ -97,7 +94,6 @@ class WebScraper:
             'Upgrade-Insecure-Requests': '1'
         })
 
-        # Update with custom headers if provided
         custom_headers = self.config.get('scraping', {}).get('headers', {})
         if custom_headers:
             session.headers.update(custom_headers)
@@ -107,7 +103,6 @@ class WebScraper:
     def fetch_url(self, url: str) -> Tuple[Optional[str], Optional[Dict]]:
         """Fetch content from a single URL with error handling"""
         try:
-            # Increase timeout for large pages and slower sites
             timeout = self.config.get('scraping', {}).get('timeout', 60)
 
             response = self.session.get(
@@ -115,12 +110,11 @@ class WebScraper:
                 timeout=timeout,
                 verify=self.config.get('scraping', {}).get('verify_ssl', True),
                 proxies=self.config.get('scraping', {}).get('proxies', {}),
-                stream=True  # Stream for large responses
+                stream=True
             )
             response.raise_for_status()
 
-            # Read content with size limit (10MB max)
-            max_size_bytes = self.config.get('scraping', {}).get('max_content_size', 10 * 1024 * 1024)  # 10MB default
+            max_size_bytes = self.config.get('scraping', {}).get('max_content_size', 10 * 1024 * 1024)
 
             content_bytes = b""
             for chunk in response.iter_content(chunk_size=8192):
@@ -130,14 +124,12 @@ class WebScraper:
                     content_bytes = content_bytes[:max_size_bytes]
                     break
 
-            # Detect encoding
             encoding = response.encoding
             if 'charset' in response.headers.get('content-type', '').lower():
                 match = re.search(r'charset=([\w-]+)', response.headers['content-type'].lower())
                 if match:
                     encoding = match.group(1)
 
-            # Decode content
             content = content_bytes.decode(encoding or 'utf-8', errors='replace')
 
             metadata = {
@@ -165,7 +157,6 @@ class WebScraper:
             content, metadata = self.fetch_url(url)
             results.append((content, metadata))
 
-            # Respect delay between requests
             delay = self.config.get('scraping', {}).get('delay_between_requests', 2)
             if delay > 0:
                 time.sleep(delay)
@@ -186,12 +177,10 @@ class HTMLCleaner:
         try:
             soup = BeautifulSoup(html_content, 'html.parser')
 
-            # Remove comments if configured
             if self.config.get('remove_comments', True):
                 for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
                     comment.extract()
 
-            # Remove specified tags (common noise in web pages)
             remove_tags = self.config.get('remove_tags', [
                 'script', 'style', 'meta', 'nav', 'footer', 'header',
                 'iframe', 'form', 'button', 'input', 'select', 'textarea',
@@ -201,12 +190,10 @@ class HTMLCleaner:
                 for element in soup.find_all(tag):
                     element.decompose()
 
-            # Remove attributes if configured
             if self.config.get('remove_attributes', True):
                 for tag in soup.find_all(True):
                     tag.attrs = {}
 
-            # Keep only specified tags if configured
             keep_tags = self.config.get('keep_tags', [
                 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                 'article', 'section', 'main', 'div.content',
@@ -219,22 +206,18 @@ class HTMLCleaner:
                     for element in soup.find_all(tag_name):
                         element.unwrap()
 
-            # Extract text only if configured
-            if self.config.get('extract_text_only', True):  # Changed default to True
+            if self.config.get('extract_text_only', True):
                 cleaned_content = soup.get_text(separator='\n', strip=True)
             else:
                 cleaned_content = str(soup)
 
-            # Clean whitespace if configured
             if self.config.get('clean_whitespace', True):
                 cleaned_content = self._clean_whitespace(cleaned_content)
 
-            # Calculate compression ratio
             original_size = len(html_content)
             cleaned_size = len(cleaned_content)
             compression_ratio = original_size / cleaned_size if cleaned_size > 0 else 1
 
-            # Update metadata
             metadata['cleaned'] = True
             metadata['original_length'] = original_size
             metadata['cleaned_length'] = cleaned_size
@@ -270,9 +253,8 @@ class AIProcessor:
         self.config = config
         self.ai_apis = config.get('ai_api', [])
         self.retry_delay = config.get('processing', {}).get('retry_delay', 2)
-        # Get prompt limits from config with realistic defaults
         processing_config = config.get('processing', {})
-        self.max_prompt_chars = processing_config.get('max_prompt_chars', 120000)  # ~30K tokens
+        self.max_prompt_chars = processing_config.get('max_prompt_chars', 120000)
         self.max_response_tokens = processing_config.get('max_response_tokens', 4000)
 
     def process_content(self, content: str, metadata: Dict) -> Tuple[str, Dict]:
@@ -283,26 +265,20 @@ class AIProcessor:
         if not self.ai_apis:
             raise ValueError("No AI APIs configured in 'ai_api'")
 
-        # Get prompt template
         prompt_templates = self.config.get('prompt_templates', {})
         selected_prompt = self.config.get('selected_prompt', 'default')
         prompt_template = prompt_templates.get(selected_prompt,
             "Please summarize the following content concisely:\n\n$content\n\nSummary:")
 
-        # Estimate token count (rough approximation: 1 token ≈ 4 chars for English)
         estimated_tokens = len(content) // 4
         logging.info("Content for AI: %d chars, ~%d tokens", len(content), estimated_tokens)
 
-        # Truncate content if too long for the prompt
         if len(content) > self.max_prompt_chars:
             logging.warning("Content too long (%d chars), truncating to %d chars",
                           len(content), self.max_prompt_chars)
-            content = content[:self.max_prompt_chars] + "\n\n[Content truncated due to length]"
 
-        # Replace variables in prompt
         prompt = prompt_template.replace('$content', content)
 
-        # Try each API in order
         for i, api_config in enumerate(self.ai_apis):
             provider = api_config.get('provider', 'openai').lower()
             api_name = api_config.get('name', f'API-{i+1}')
@@ -321,7 +297,6 @@ class AIProcessor:
                 else:
                     result, ai_metadata = self._call_generic_api(prompt, api_config)
 
-                # If we reach here, the call was successful
                 logging.info("Success with %s", api_name)
                 return result, {**metadata, 'ai_metadata': ai_metadata, 'used_provider': api_name}
 
@@ -329,14 +304,12 @@ class AIProcessor:
                 error_msg = str(e)
                 logging.warning("Failed with %s: %s...", api_name, error_msg[:100])
 
-                # If not the last API, wait and continue
                 if i < len(self.ai_apis) - 1:
                     next_api = self.ai_apis[i + 1].get('name', f'API-{i+2}')
                     logging.info("Waiting %ss before trying %s...", self.retry_delay, next_api)
                     time.sleep(self.retry_delay)
                     continue
                 else:
-                    # Last API failed
                     error_msg = f"All AI APIs failed. Last error: {e}"
                     logging.error(error_msg)
                     return "", {**metadata, 'ai_processing_error': error_msg}
@@ -347,18 +320,15 @@ class AIProcessor:
         if not api_key or api_key == 'your-api-key-here':
             raise ValueError("OpenAI API key not configured")
 
-        # Create client with custom base URL if provided
         client_kwargs = {"api_key": api_key}
         if 'endpoint' in api_config:
             client_kwargs["base_url"] = api_config['endpoint']
 
         client = OpenAI(**client_kwargs)
 
-        # Use model-specific max tokens if provided, otherwise use default
         model = api_config.get('model', 'gpt-4-turbo-preview')
         max_tokens = api_config.get('max_tokens', self.max_response_tokens)
 
-        # Adjust max_tokens based on model limits
         if 'gpt-3.5' in model:
             max_tokens = min(max_tokens, 4096)
         elif 'gpt-4' in model:
@@ -458,7 +428,6 @@ class AIProcessor:
         endpoint = api_config.get('endpoint', 'http://localhost:11434/api/chat')
         model = api_config.get('model', 'llama2')
 
-        # Ollama uses different parameter names
         max_tokens = api_config.get('max_tokens', self.max_response_tokens)
 
         data = {
@@ -479,7 +448,7 @@ class AIProcessor:
             response = requests.post(
                 endpoint,
                 json=data,
-                timeout=api_config.get('timeout', 120)  # Ollama can be much slower
+                timeout=api_config.get('timeout', 120)
             )
 
             if response.status_code != 200:
@@ -511,7 +480,6 @@ class AIProcessor:
             model = api_config.get('model', 'claude-3-opus-20240229')
             max_tokens = api_config.get('max_tokens', self.max_response_tokens)
 
-            # Claude has higher token limits
             if 'opus' in model:
                 max_tokens = min(max_tokens, 4096)
             elif 'sonnet' in model or 'haiku' in model:
@@ -571,7 +539,6 @@ class AIProcessor:
             'max_tokens': max_tokens
         }
 
-        # Add API-specific extra fields
         data.update(api_config.get('extra_params', {}))
 
         try:
@@ -587,7 +554,7 @@ class AIProcessor:
 
             try:
                 result_json = response.json()
-                # Extract response (compatible with OpenAI and similar)
+
                 if 'choices' in result_json and len(result_json['choices']) > 0:
                     if 'message' in result_json['choices'][0]:
                         result = result_json['choices'][0]['message']['content']
@@ -630,7 +597,6 @@ class OutputGenerator:
                        metadata: Dict) -> Dict[str, Any]:
         """Generate output based on configuration"""
 
-        # Prepare variables for substitution
         variables = {
             '$IAresult': ai_result,
             '$source_url': metadata.get('url', ''),
@@ -650,22 +616,18 @@ class OutputGenerator:
             '$total_tokens': metadata.get('ai_metadata', {}).get('usage', {}).get('total_tokens', 0)
         }
 
-        # Get output fields configuration
         output_fields = self.config.get('fields', {})
 
-        # Generate output structure
         output = {}
         for field_name, field_template in output_fields.items():
             if field_template in variables:
                 output[field_name] = variables[field_template]
             elif field_template.startswith('$'):
-                # Try to find the variable
                 var_name = field_template
                 output[field_name] = variables.get(var_name, field_template)
             else:
                 output[field_name] = field_template
 
-        # Add metadata
         output['_metadata'] = {
             'processing_time': datetime.now().isoformat(),
             'urls_processed': metadata.get('total_sources', 0),
@@ -690,13 +652,11 @@ class OutputGenerator:
         output_file = self.config.get('file', '')
         encoding = self.config.get('encoding', 'utf-8')
 
-        # If no output file is specified, print to console
-        if not output_file:
+        if not output_file or output_file.strip() == '':
             if output_type == 'json':
                 indent = self.config.get('json_indent', 2)
                 output_str = json.dumps(output_data, indent=indent, ensure_ascii=False, default=str)
-                if not self.quiet_mode:
-                    print(output_str)
+                print(output_str)
                 return "console"
             elif output_type in ('text', 'txt'):
                 lines = []
@@ -704,13 +664,11 @@ class OutputGenerator:
                     if not key.startswith('_'):
                         lines.append(f"{key}: {value}")
                 output_str = '\n'.join(lines)
-                if not self.quiet_mode:
-                    print(output_str)
+                print(output_str)
                 return "console"
             else:
                 raise ValueError(f"Unsupported output type: {output_type}")
 
-        # Create directory if it doesn't exist
         output_path = Path(output_file)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -750,15 +708,14 @@ class Resumeme:
             log_level = getattr(logging, log_config.get('level', 'INFO').upper())
             log_file = log_config.get('file', 'resumeme.log')
 
+            handlers = [logging.FileHandler(log_file, encoding='utf-8')]
+            if not self.quiet_mode:
+                handlers.append(logging.StreamHandler())
+
             logging.basicConfig(
                 level=log_level,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                handlers=[
-                    logging.FileHandler(log_file, encoding='utf-8'),
-                    logging.StreamHandler()
-                ] if not self.quiet_mode else [
-                    logging.FileHandler(log_file, encoding='utf-8')
-                ]
+                handlers=handlers
             )
 
             if not self.quiet_mode:
@@ -766,11 +723,10 @@ class Resumeme:
 
     def run(self):
         """Main execution method"""
-        # Load configuration
+
         config_loader = ConfigLoader(self.config_path)
         self.config = config_loader.load()
 
-        # Override selected_prompt if provided via command line
         if self.prompt_override:
             if self.prompt_override in self.config.get('prompt_templates', {}):
                 self.config['selected_prompt'] = self.prompt_override
@@ -783,22 +739,18 @@ class Resumeme:
                 if not self.quiet_mode:
                     print(f"Warning: Prompt '{self.prompt_override}' not found. Using default.")
 
-        # Setup logging
         self.setup_logging()
 
         if not self.quiet_mode:
             logging.info("Starting resumeme process")
 
-        # Step 1: Fetch content from URLs
         scraper = WebScraper(self.config)
         content_list = scraper.fetch_all_urls()
 
-        # Filter out failed fetches
         successful_content = [(content, metadata) for content, metadata in content_list
                             if content is not None]
 
         if not successful_content:
-            # Always show critical errors
             print("Error: Failed to fetch content from all URLs")
             sys.exit(1)
 
@@ -806,7 +758,6 @@ class Resumeme:
         logging.info("Total raw content: %d chars (~%.1f KB)",
                     total_raw_size, total_raw_size / 1024)
 
-        # Step 2: Clean HTML content
         cleaner = HTMLCleaner(self.config)
         cleaned_content_list = []
         raw_content_list = []
@@ -821,7 +772,6 @@ class Resumeme:
         logging.info("Total clean content: %d chars (~%.1f KB, compression: %.2fx)",
                     total_clean_size, total_clean_size / 1024, avg_compression)
 
-        # Step 3: Concatenate content
         processing_config = self.config.get('processing', {})
         concat_strategy = processing_config.get('concat_strategy', 'sequential')
 
@@ -829,14 +779,13 @@ class Resumeme:
             all_raw_content = '\n\n'.join([content for content, _ in raw_content_list])
             all_clean_content = '\n\n'.join([content for content, _ in cleaned_content_list])
         elif concat_strategy == 'chunked':
-            chunk_size = processing_config.get('chunk_size', 30000)  # Increased
+            chunk_size = processing_config.get('chunk_size', 30000)
             all_raw_content = self._chunk_content(raw_content_list, chunk_size)
             all_clean_content = self._chunk_content(cleaned_content_list, chunk_size)
         else:
             all_raw_content = '\n\n'.join([content for content, _ in raw_content_list])
             all_clean_content = '\n\n'.join([content for content, _ in cleaned_content_list])
 
-        # Limit total length if configured (realistic defaults)
         max_length = processing_config.get('max_total_length', 150000)  # 150K chars ~ 37.5K tokens
         if len(all_clean_content) > max_length:
             logging.warning("Content too long (%d chars), truncating to %d chars",
@@ -846,15 +795,12 @@ class Resumeme:
         logging.info("Final content for AI: %d chars (~%d tokens)",
                     len(all_clean_content), len(all_clean_content) // 4)
 
-        # Step 4: Process with AI (with fallback)
         ai_processor = AIProcessor(self.config)
         ai_result, final_metadata = ai_processor.process_content(all_clean_content,
             {'total_sources': len(cleaned_content_list)})
 
-        # Step 5: Generate output
         output_generator = OutputGenerator(self.config, self.quiet_mode)
 
-        # Combine metadata from all sources
         combined_metadata = {
             'url': '; '.join([m.get('url', '') for _, m in cleaned_content_list]),
             'sources': [metadata for _, metadata in cleaned_content_list],
@@ -873,12 +819,11 @@ class Resumeme:
             combined_metadata
         )
 
-        # Step 6: Save output
-        output_file = output_generator.save_output(output_data)  # removed unused argument
+        output_file = output_generator.save_output(output_data)
 
-        # Step 7: Print summary (only if not in quiet mode or output is console)
-        self._print_summary(cleaned_content_list, ai_result, output_file,
-                           final_metadata.get('used_provider', 'unknown'))
+        if not self.quiet_mode and output_file != "console":
+            self._print_summary(cleaned_content_list, ai_result, output_file,
+                               final_metadata.get('used_provider', 'unknown'))
 
         if not self.quiet_mode:
             logging.info("Resumeme process completed successfully")
@@ -906,15 +851,14 @@ class Resumeme:
     def _print_summary(self, content_list: List[Tuple[str, Dict]], ai_result: str,
                       output_file: str, used_provider: str):
         """Print a summary of the process to console"""
-        # Don't print summary in quiet mode if we're saving to a file
-        if self.quiet_mode and output_file != "console":
+
+        if self.quiet_mode or output_file == "console":
             return
 
         print("\n" + "="*60)
         print("RESUMEME PROCESS COMPLETED")
         print("="*60)
 
-        # Calculate statistics
         total_raw = sum(metadata.get('size_bytes', 0) for _, metadata in content_list)
         total_clean = sum(metadata.get('cleaned_length', 0) for _, metadata in content_list)
         compression = total_raw / total_clean if total_clean > 0 else 1
@@ -940,10 +884,7 @@ class Resumeme:
         print(preview)
         print("-"*40)
 
-        if output_file == "console":
-            print("\nOutput sent to console")
-        else:
-            print(f"\nOutput saved to: {output_file}")
+        print(f"\nOutput saved to: {output_file}")
         print("="*60)
 
 def main():
@@ -981,7 +922,6 @@ def main():
             print("\nProcess interrupted by user")
         sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
-        # Always show errors even in quiet mode
         print(f"Error: {e}")
         logging.error("Unhandled exception: %s", e, exc_info=True)
         sys.exit(1)
